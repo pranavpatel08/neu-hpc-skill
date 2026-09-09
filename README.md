@@ -11,7 +11,8 @@ Every partition limit, GPU type, and module version here was **verified against 
 cluster** (`sinfo`, `sacctmgr`, `scontrol`, `module avail`) on 2026-09-08, then
 cross-checked against the official docs at
 [rc-docs.northeastern.edu](https://rc-docs.northeastern.edu). Where the two disagree, the
-file says so.
+file says so. The CUDA and driver claims come from **real GPU jobs** run on a T4 node and
+an H200 node, not from reading docs.
 
 ## Install
 
@@ -29,19 +30,22 @@ Uninstall: `rm -rf ~/.claude/skills/neu-hpc`
 ## What it covers
 
 Connecting and passwordless SSH - storage layout and the 75 GB `/home` quota - the module
-system - conda environments and GPU-enabled PyTorch - partitions, QOS limits and which one
-to pick - `srun` and `sbatch` - GPU jobs and GPU type selection - job arrays - job
+system - conda and venv environments, GPU-enabled PyTorch, and what the `cuda` modules do
+and do not affect - partitions, QOS limits and which one to pick - `srun` and `sbatch` -
+GPU jobs, GPU type selection, VRAM sizes and `--constraint` - job arrays - job
 dependencies - monitoring with `squeue`/`sacct`/`seff`/`historical-seff`/`gpu-logs` -
 data transfer through the `xfer` node - Apptainer containers - checkpointing to beat the
-8 hour GPU limit - maintenance windows - a troubleshooting table for the errors people
-actually hit.
+8 hour GPU limit - the `courses`/`courses-gpu` partitions and the `/courses` layout for
+instructors and students - maintenance windows - a troubleshooting table for the errors
+people actually hit.
 
 ## Templates
 
 | File | Purpose |
 |---|---|
-| [`gpu_job.sbatch`](./templates/gpu_job.sbatch) | Single-GPU training job on the `gpu` partition |
+| [`gpu_job.sbatch`](./templates/gpu_job.sbatch) | Single-GPU job on the `gpu` partition |
 | [`cpu_job.sbatch`](./templates/cpu_job.sbatch) | CPU job on `short` |
+| [`courses_job.sbatch`](./templates/courses_job.sbatch) | Job on `courses` / `courses-gpu` |
 | [`job_array.sbatch`](./templates/job_array.sbatch) | Parameter sweep with concurrency throttling |
 | [`checkpoint_array.sbatch`](./templates/checkpoint_array.sbatch) | Serial array that resumes from checkpoints, for runs longer than 8 h |
 | [`conda_setup.sh`](./templates/conda_setup.sh) | Build a GPU-capable conda env in `/projects` the supported way |
@@ -49,7 +53,9 @@ actually hit.
 | [`submit_phased.sh`](./templates/submit_phased.sh) | Multi-stage pipelines: `sacct` dependency resolution plus QOS-safe phasing |
 | [`verify_cluster.sh`](./templates/verify_cluster.sh) | Re-derive every limit in the docs from the live cluster |
 
-Each template has a `CHANGEME` config block at the top and refuses to run until you edit it.
+The `.sbatch` templates are deliberately minimal (directives, modules, activate, `cd`, run)
+and use `$USER` so paths work unedited. The helper `.sh` scripts have a `CHANGEME` block at
+the top and refuse to run until you edit it.
 
 [`reference/cluster_snapshot_2026-09-08.txt`](./reference/cluster_snapshot_2026-09-08.txt)
 is the raw output of `verify_cluster.sh`, kept so you can diff the cluster against a known
@@ -75,7 +81,14 @@ A short version of what is in the troubleshooting table:
   needs the `multigpu` partition, which needs an approved application.
 - **IdleBot cancels idle GPU jobs after an hour.** Do not park an interactive GPU session.
 - **Transfers go through `xfer.discovery.neu.edu`,** not the login node.
-- **`/scratch` is purged monthly** and is not backed up.
+- **`/scratch` is purged monthly** and is not backed up. If your conda env or venv lives
+  there, the purge deletes it and your job scripts start failing in a confusing way:
+  `source .../bin/activate` on a missing path fails quietly and `python` falls back to the
+  module interpreter. Keep environments in `/projects`.
+- **The `cuda` module version does not decide whether your GPU works.** Measured: a
+  pip-installed torch wheel ran fine on the GPU with `cuda/12.1.1`, `12.3.0`, `12.8.0`,
+  `13.2.0`, and with no cuda module at all. What binds is the driver (`570.86.15`, CUDA
+  ≤12.8), so use `cu121`/`cu124`/`cu128` wheels and **not** `cu13x`.
 
 ## Contributing
 

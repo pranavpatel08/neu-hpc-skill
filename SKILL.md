@@ -10,7 +10,7 @@ Everything needed to go from zero to a running GPU job on **Explorer**, Northeas
 
 **Cluster at a glance**: Rocky Linux 9, Slurm 23.11.6, ~45,000 CPU cores, 525+ GPUs, 6 PB storage, InfiniBand (100/200 Gbps) on some nodes. Free to all NU faculty and students.
 
-> **Numbers drift.** Partition limits, GPU inventory, and module versions change. Everything marked *(live)* was verified on **2026-09-08**. Before relying on a specific limit, run `templates/verify_cluster.sh` (or the commands in [§13](#13-verify-current-reality)). Treat this file as the map, not the territory.
+> **Numbers drift.** Partition limits, GPU inventory, and module versions change. Everything marked *(live)* was verified on **2026-09-08** by querying the cluster directly, and the CUDA/driver claims in [§4](#4-python-environments) come from real GPU jobs run on a T4 node and an H200 node that day. Before relying on a specific limit, run `templates/verify_cluster.sh` (or the commands in [§13](#13-verify-current-reality)). Treat this file as the map, not the territory.
 
 ---
 
@@ -48,7 +48,7 @@ cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
 | `/home/<username>` | **75 GB**, fixed, cannot be raised | Yes | Scripts, source, small files. Not data, not conda envs. |
 | `/scratch/<username>` | Large (see Scratch Policy) | **No**, purged **monthly** | Temp/intermediate job output. Move anything you need out promptly. |
 | `/projects/<name>` | Up to 35 TB free per PI | Yes | Group research data, conda envs, containers. PI must request it. |
-| `/courses/<course>` | Course-managed | - | Course materials |
+| `/courses/<COURSE>.<TERM>` | **1 TB** default per course | Yes | Course space. Subdirs `data/` and `shared/` (staff writes, students read-only), `staff/`, `students/<username>`. Archived and student dirs deleted when the course ends. |
 
 `/projects/foo` on Explorer is the same storage as `/work/foo` on Discovery.
 
@@ -148,7 +148,40 @@ python -c 'import tensorflow as tf; print(bool(tf.config.list_physical_devices("
 
 Housekeeping: `conda env list`, `conda list --prefix <path>`, `conda clean --all`, `conda remove -p /path/envname --all`.
 
+### Plain venv instead of conda
+
+A `python -m venv` environment is lighter than conda and works fine here. Load the anaconda (or `python/3.13.5`) module for the interpreter, then create the venv wherever you want it:
+
+```bash
+module load anaconda3/2024.06
+python -m venv /projects/<group>/envs/myenv
+source /projects/<group>/envs/myenv/bin/activate
+pip install torch --index-url https://download.pytorch.org/whl/cu121
+```
+
+Activation in a job is then just `source /projects/<group>/envs/myenv/bin/activate`.
+
+:rotating_light: **Do not keep a venv you care about in `/scratch`.** `/scratch` is purged monthly, and the purge takes your environment with it: the job script still looks correct, but `source .../bin/activate` silently does nothing and `python` falls back to the module's interpreter with none of your packages. Put environments in `/projects` (or `/courses` for a class) and keep only data and intermediate output in `/scratch`.
+
 If an environment already works, **do not casually reinstall torch into it**; you can silently swap a working CUDA build for a CPU-only wheel. Re-run the `torch.cuda.is_available()` check after any change.
+
+### Do the `cuda` / `cuDNN` modules actually matter?
+
+Mostly no, and this is worth knowing because people cargo-cult specific versions. Measured on Explorer on **2026-09-08** with a real job on a T4 node:
+
+A pip-installed PyTorch wheel bundles its own CUDA runtime and cuDNN. `torch.cuda.is_available()` returned `True`, and a real GPU matmul succeeded, under **every** combination tried: no cuda module at all, `cuda/12.1.1`, `cuda/12.3.0`, `cuda/12.8.0`, and `cuda/13.2.0`, each with `cuDNN/9.10.2`. torch reported `2.5.1+cu121`, built for CUDA 12.1, with bundled cuDNN 9.10.2.
+
+So the cuda module version is **not** what makes the GPU work for pip-installed PyTorch or TensorFlow. What actually decides it:
+
+1. Being on a GPU node with `--gres` actually granted.
+2. The NVIDIA **driver** on the node: `570.86.15`, which supports CUDA up to **12.8**. (Same driver measured on both a T4 node and an H200 node, so this is cluster-wide, not per-GPU.)
+3. Installing a wheel the driver can run: `cu121`, `cu124`, `cu128` are all fine.
+
+:rotating_light: **Do not install a `cu13x` torch wheel**, even though `cuda/13.2.0` exists as a module. The driver caps at CUDA 12.8, so a CUDA 13 build will not run.
+
+Load a cuda module when you compile CUDA yourself (`nvcc`), build custom extensions, or run software that links the system CUDA. Otherwise it is harmless habit: `cuda/12.3.0` and `cuda/12.8.0` behave identically for pip-installed frameworks.
+
+When `torch.cuda.is_available()` is False, the cuda module is almost never the cause. Check in order: are you on a compute node rather than the login node, did you pass `--gres=gpu:...`, and is your wheel a CPU-only build (`pip list | grep torch` with no `+cu` suffix)?
 
 ---
 
@@ -239,7 +272,7 @@ From the official partition tables plus live `sacctmgr`/`scontrol` values *(live
 | `short` | No | 4 h / **48 h** | 50 | 1000 | **Default partition.** Max 2 nodes, 1024 cores, 25 TB RAM per user. |
 | `long` | **Yes** | 1 d / 5 d | 25 | 1000 | Must show your code cannot checkpoint. |
 | `sharing` | No | 30 m / 60 m | 2 | 4 | Huge node pool, tiny walltime. Good for quick tests. |
-| `courses` | Course members | 4 h / 1 d | - | - | Course accounts only. |
+| `courses` | Course members | 4 h / **24 h** | 50 | - | Course accounts only. 256 GB RAM cap. |
 | `debug`, `express` | No | 20 m / 60 m | 10 / 50 | - | Very short, high priority. |
 
 ### GPU partitions
@@ -251,6 +284,7 @@ From the official partition tables plus live `sacctmgr`/`scontrol` values *(live
 | `gpu` | No | 4 h / **8 h** | 4 / 8 | **1** | 4 |
 | `multigpu` | **Yes** | 4 h / **24 h** | 4 / 8 | 8 | 8 |
 | `sharing` | No | 30 m / 60 m | 2 / 4 | 1 | 2 |
+| `courses-gpu` | Course members | 4 h / **8 h** | 2 | 1 | 12 GB RAM cap |
 
 :rotating_light: **On `gpu`, `gpu-short`, and `gpu-interactive` you get exactly 1 GPU per job.** Asking for `--gres=gpu:2` makes the submission fail. Multi-GPU needs the `multigpu` partition, which needs approval.
 
@@ -259,6 +293,30 @@ You also **cannot request all the CPUs on a GPU node**; the rest are reserved fo
 **GPU types** *(live)*. In the general `gpu` partition: `h200` (8/node, 144 GB), `a100` (3-4/node), `v100-sxm2` (3-4/node), `v100-pcie` (2/node), `t4` (4/node). The `sharing` partition adds `h100`, `a6000`, `a5000`, `l40`, `l40s`, `rtx6000`, `quadro`, `a30`, `p100`, `mi50` (AMD/ROCm).
 
 Request a type with `--gres=gpu:<type>:1`, e.g. `--gres=gpu:h200:1`. Naming a type can mean a longer queue wait; omitting it (`--gres=gpu:1`) gets whatever frees up first.
+
+**VRAM per GPU** (matters more than the model name when your model has to fit): H200 ~140 GB (143771 MiB, measured), H100 80 GB, A100 either 40 or 80 GB depending on node, V100 either 16 or 32 GB depending on node, T4 16 GB (15360 MiB, measured), P100 12 GB. Because A100 and V100 each come in two sizes, `--gres=gpu:a100:1` can land you on either; pin the big one with `--constraint=a100@80g`.
+
+### Pinning hardware with `--constraint`
+
+`--constraint=<feature>` filters which nodes you are willing to run on. The complete live feature list:
+
+```
+ib               InfiniBand network (use for I/O-heavy work and data movement)
+a100@80g         the ONLY GPU-memory feature: forces an 80 GB A100 rather than a 40 GB one
+rocm             AMD GPUs (MI50), not CUDA
+largemem, dgx    special node classes
+prod, prod8      production node pools
+broadwell  cascadelake  haswell  ivybridge  sapphirerapids  skylake_avx512  zen  zen2
+                 CPU microarchitecture, for reproducibility or AVX-512 requirements
+bansil  lotterhos  zhang     PI-owned node groups (not usable unless you are in that group)
+```
+
+```bash
+#SBATCH --constraint=a100@80g          # 80 GB A100 only
+#SBATCH --gres=gpu:a100:1
+```
+
+:warning: **Constraints narrow the pool and can make a job pend forever.** In the `gpu` partition only one node currently carries `a100@80g`, and most `v100-sxm2` nodes carry *no* features at all, so `--constraint=ib` silently excludes them. Add constraints only when you need them, and re-check with `sinfo -N -p gpu -o "%.14N %.30f %.24G"`.
 
 ### Getting `multigpu` or `long` access
 
@@ -503,6 +561,52 @@ After being added to a project, **log out and back in**; Unix groups are assigne
 
 ---
 
+## 17b. Courses on Explorer (instructors and students)
+
+Instructors request access with an **HPC Classroom Use Request** ticket, ideally before the semester starts (a week minimum, one month if RC has to build custom software). Student accounts are pulled straight from Canvas, so do not send a roster. Tell RC about enrollment changes.
+
+Each course gets `/courses/<COURSE>.<TERM>/` (e.g. `/courses/CS7150.202710/`):
+
+```
+/courses/CS7150.202710/
+├── data/        staff read-write, students read-only
+├── shared/      staff read-write, students read-only
+├── staff/       one folder per instructor, co-instructor, TA
+└── students/    one folder per student; each student sees only their own
+```
+
+**1 TB by default.** More can be requested on the access form or later via <rchelp@northeastern.edu>. When the course ends and grades are in, the space is archived and student directories are deleted. Students whose only access came through the course lose their accounts.
+
+**Two dedicated partitions**, sized by RC each term based on enrollment:
+
+| Partition | Time (default/max) | Max running jobs | Cap |
+|---|---|---|---|
+| `courses` | 4 h / 24 h | 50 | 256 GB RAM |
+| `courses-gpu` | 4 h / 8 h | 2 | 12 GB RAM |
+
+The 12 GB RAM cap on `courses-gpu` is the thing students trip over: it is CPU memory, and a careless dataloader will hit it long before the GPU is the problem.
+
+```bash
+# batch
+#SBATCH --partition=courses-gpu
+#SBATCH --gres=gpu:1
+#SBATCH --time=4:00:00
+
+# interactive
+srun --time=4:00:00 --partition=courses --pty /bin/bash
+srun --time=4:00:00 --partition=courses-gpu --gres=gpu:1 --pty /bin/bash
+
+# what is actually available this term
+sinfo -p courses-gpu --Format=nodes,cpus,gres,statecompact
+squeue -p courses
+```
+
+**Environments**: the instructor should build one shared conda env inside the course directory that the whole class uses; students can build their own under `/courses/<COURSE>.<TERM>/students/<username>/`. Shared envs are also selectable from JupyterLab on Open OnDemand, where the apps under the **Courses** tab let you pick `courses` or `courses-gpu` from a dropdown.
+
+Remind students to `scancel` interactive sessions when they finish. With only 2 concurrent GPU jobs per user and a shared term allocation, parked sessions block classmates.
+
+---
+
 ## 18. Troubleshooting
 
 | Symptom | Cause | Fix |
@@ -516,6 +620,8 @@ After being added to a project, **log out and back in**; Unix groups are assigne
 | "Job dependency problem" on a job that succeeded | `afterok` target aged out of `squeue` | Resolve deps via `sacct` first |
 | GPU job killed after ~1 h with no error | IdleBot cancelled it for low utilization | Check `/scratch/$USER/idle_bot_graphs/<jid>.png`; fix the input pipeline |
 | `MODULE NOT FOUND` | Stale Discovery-era `module load` in `.bashrc` | Remove module loads from `.bashrc` |
+| Job runs but every import fails, and `source .../bin/activate` seemed fine | The venv/conda env lived in `/scratch` and was deleted by the monthly purge. `source` on a missing path fails quietly, so `python` silently falls back to the module interpreter | `ls` the env path. Rebuild it in `/projects`, not `/scratch` |
+| `torch.cuda.is_available()` is False | Almost never the cuda module. Login node, missing `--gres`, or a CPU-only wheel | Confirm `nvidia-smi` works, that you passed `--gres`, and that `pip list \| grep torch` shows a `+cu` build |
 | Job reports COMPLETED but produced nothing | No `set -e`; script failed but exited 0 | Add `set -euo pipefail` |
 | Output file missing entirely | `--output` directory does not exist | `mkdir -p logs` before submitting |
 | `Error: unable to open display` | Passwordless SSH not set up on the cluster itself | Regenerate keys, append to `~/.ssh/authorized_keys` on the cluster |
@@ -531,13 +637,16 @@ After being added to a project, **log out and back in**; Unix groups are assigne
 
 | File | Purpose |
 |---|---|
-| `templates/gpu_job.sbatch` | Single-GPU training job on the `gpu` partition |
+| `templates/gpu_job.sbatch` | Single-GPU job on the `gpu` partition |
 | `templates/cpu_job.sbatch` | CPU job on `short` |
+| `templates/courses_job.sbatch` | Job on `courses` / `courses-gpu` |
 | `templates/job_array.sbatch` | Parameter sweep with throttling |
 | `templates/checkpoint_array.sbatch` | Serial array that resumes from checkpoints, to beat the 8 h GPU limit |
-| `templates/conda_setup.sh` | Build a GPU-capable conda env in `/projects` the supported way |
-| `templates/transfer.sh` | Safe push/pull through the xfer node |
+| `templates/conda_setup.sh` | Build a GPU-capable conda env in `/projects` |
+| `templates/transfer.sh` | Push/pull through the xfer node with safe excludes |
 | `templates/submit_phased.sh` | Multi-stage pipeline: `sacct` dependency resolution plus QOS-safe phasing |
 | `templates/verify_cluster.sh` | Re-derive every limit in this document from the live cluster |
 
-Replace `<username>`, `<group>`, and module versions before use.
+The `.sbatch` templates are deliberately **minimal**: directives, module loads, activate, `cd`, run. That is all a working job needs on Explorer, and shorter scripts are easier to check. They use `$USER` so the paths work unedited.
+
+The extras shown in [§6](#6-batch-jobs-sbatch) (`set -euo pipefail`, `--output=logs/%x-%j.out`, `--mail-type`, an `nvidia-smi -L` sanity line) are worth adding when a script does more than call one program: `set -euo pipefail` in particular stops a multi-command script from reporting COMPLETED after a mid-script failure. With a single `python` call at the end, the exit code already propagates and none of it is needed.
