@@ -1,27 +1,37 @@
 #!/usr/bin/env bash
-# Phased Slurm submission with sacct-based dependency resolution.
+# Multi-stage Slurm pipeline driver for Explorer.
 #
-# Solves two real problems:
-#   1. QOS submit limits — most clusters cap concurrent submitted+pending+
-#      running jobs per user. Submitting a full DAG at once gets the tail
-#      rejected. This script submits in small phases instead.
-#   2. `--dependency=afterok:<JID>` fails with "Job dependency problem" once
-#      the target JID ages out of the active queue (hours after completion,
-#      even though the job succeeded). resolve_dep() checks sacct and drops/
-#      converts dependencies instead of blindly passing raw job IDs.
+# Solves the two failure modes that break naive `sbatch --dependency` pipelines here:
+#
+#   1. QOS SUBMIT LIMITS. The `gpu` partition allows only 8 submitted and 4 running
+#      jobs per user (`gpu-short`/`gpu-interactive`: 4 and 2). Firing a whole DAG at
+#      once gets the tail rejected with QOSMaxSubmitJobPerUserLimit. This script
+#      submits in small phases instead.
+#
+#   2. DEPENDENCIES ON AGED-OUT JOB IDS. `--dependency=afterok:<JID>` is rejected with
+#      "Job dependency problem" once the target has aged out of the active queue,
+#      which happens within hours of completion even for jobs that succeeded.
+#      resolve_dep() checks sacct and drops or downgrades each dependency instead of
+#      passing raw IDs through.
 #
 # Usage:
 #   bash submit_phased.sh 1        # submit phase 1
-#   bash submit_phased.sh 2        # submit phase 2 (after phase 1 completes)
-#   bash submit_phased.sh status   # show saved job IDs + squeue
-#   bash submit_phased.sh clean    # scancel everything saved + clear state
+#   bash submit_phased.sh 2        # submit phase 2 (once phase 1 has finished)
+#   bash submit_phased.sh one B1   # re-run a single job with no dependencies
+#   bash submit_phased.sh status   # saved job IDs + current queue
+#   bash submit_phased.sh clean    # scancel everything saved, clear state
 #
-# Adapt: ROOT, USER_NAME, and the phase cases at the bottom to your own DAG.
+# Adapt ROOT, the job-name -> script mapping, and the phase cases at the bottom.
 set -euo pipefail
 
-ROOT=/scratch/<netid>/<project>
-STATE=$ROOT/.submit_state
-USER_NAME=<netid>
+PROJECT=CHANGEME             # your project dir under /scratch/$USER/
+if [[ "$PROJECT" == CHANGEME* ]]; then
+  echo "Edit PROJECT at the top of $0 first." >&2; exit 1
+fi
+
+ROOT=/scratch/${USER}/${PROJECT}
+SLURM_DIR=${ROOT}/slurm
+STATE=${ROOT}/.submit_state
 
 GREEN='\033[0;32m'; RED='\033[0;31m'; YELLOW='\033[1;33m'; NC='\033[0m'
 
@@ -29,20 +39,18 @@ get_id() { grep -E "^$1=" "$STATE" 2>/dev/null | tail -1 | cut -d= -f2; }
 set_id() { echo "$1=$2" >> "$STATE"; }
 
 need_id() {
-  local name=$1
-  local id=$(get_id "$name")
+  local id
+  id=$(get_id "$1")
   if [[ -z $id ]]; then
-    echo -e "${RED}  ERROR: no saved $name id in $STATE. Run the prior phase first.${NC}" >&2
+    echo -e "${RED}  ERROR: no saved $1 id in $STATE. Run the earlier phase first.${NC}" >&2
     exit 1
   fi
   echo "$id"
 }
 
-sacct_state() {
-  sacct -j "$1" -o State -X -n -P 2>/dev/null | head -1 | awk '{print $1}'
-}
+sacct_state() { sacct -j "$1" -o State -X -n -P 2>/dev/null | head -1 | awk '{print $1}'; }
 
-# Resolve "afterok:J1:J2:J3" -> a dep string safe against aged-out job IDs.
+# "afterok:J1:J2" -> a dependency string Slurm will actually accept.
 resolve_dep() {
   local raw=$1
   [[ -z $raw ]] && { echo ""; return; }
@@ -57,11 +65,14 @@ resolve_dep() {
       COMPLETED)
         echo "    dep $jid: COMPLETED -> drop" >&2 ;;
       ""|UNKNOWN)
-        echo "    dep $jid: no sacct record -> drop (assume terminal)" >&2 ;;
+        echo "    dep $jid: no sacct record (aged out) -> drop" >&2 ;;
       PENDING|RUNNING|SUSPENDED|REQUEUED|RESIZING|CONFIGURING|COMPLETING)
         keep+=("$jid") ;;
       *)
-        echo "    dep $jid: state=$st -> drop (downstream should check output-on-disk)" >&2 ;;
+        # FAILED / TIMEOUT / CANCELLED / OUT_OF_MEMORY: drop and warn. Downstream
+        # scripts should gate on whether their input exists on disk, and a TIMEOUT
+        # job often wrote usable output before being killed.
+        echo "    dep $jid: state=$st -> drop (downstream must check its input on disk)" >&2 ;;
     esac
   done
   if [[ ${#keep[@]} -eq 0 ]]; then
@@ -69,7 +80,9 @@ resolve_dep() {
   else
     local joined
     joined=$(IFS=:; echo "${keep[*]}")
-    echo "afterany:$joined"   # afterany, not afterok: a TIMEOUT job may still have written usable output
+    # afterany, not afterok: a TIMEOUT job that still produced output should not
+    # permanently block the rest of the pipeline.
+    echo "afterany:$joined"
   fi
 }
 
@@ -86,7 +99,7 @@ submit() {
     return 1
   fi
   set_id "$name" "$jid"
-  echo "  $name = $jid   ($script)   deps=${deps:-none}"
+  echo -e "  ${GREEN}$name${NC} = $jid   ($script)   deps=${deps:-none}"
 }
 
 show_status() {
@@ -94,13 +107,17 @@ show_status() {
   [[ -f $STATE ]] && cat "$STATE" || echo "  (no state file yet)"
   echo
   echo -e "${YELLOW}==> Current queue:${NC}"
-  squeue -u "$USER_NAME" --format='%.10i %.18j %.10P %.6t %.10M %.10l %R' || true
+  squeue -u "${USER}" --format='%.10i %.20j %.16P %.8T %.10M %.10l %R' || true
 }
 
 clean_state() {
   if [[ -f $STATE ]]; then
+    local ids
     ids=$(cut -d= -f2 "$STATE" | tr '\n' ' ')
-    [[ -n $ids ]] && { echo -e "${YELLOW}==> scancel $ids${NC}"; scancel $ids || true; }
+    if [[ -n ${ids// /} ]]; then
+      echo -e "${YELLOW}==> scancel $ids${NC}"
+      scancel $ids || true
+    fi
     rm -f "$STATE"
     echo -e "${GREEN}  state cleared.${NC}"
   else
@@ -108,28 +125,56 @@ clean_state() {
   fi
 }
 
-# ─── Example DAG — replace with your own phases/scripts ─────────────────────
-phase=${1:-}
-case "$phase" in
+# job name -> sbatch script
+script_for() {
+  case "$1" in
+    A)  echo "${SLURM_DIR}/a_prepare.sbatch" ;;
+    B1) echo "${SLURM_DIR}/b1_train.sbatch" ;;
+    B2) echo "${SLURM_DIR}/b2_train.sbatch" ;;
+    C)  echo "${SLURM_DIR}/c_evaluate.sbatch" ;;
+    *)  return 1 ;;
+  esac
+}
+
+case "${1:-}" in
   1)
-    : > "$STATE"
-    submit STAGE1 "" stage1.sbatch
+    : > "$STATE"                                   # phase 1 starts a fresh run
+    echo -e "${YELLOW}==> Phase 1: A${NC}"
+    submit A "" "$(script_for A)"
+    echo "   When A completes: bash $0 2"
     ;;
   2)
-    S1=$(need_id STAGE1)
-    submit STAGE2A "afterok:$S1" stage2a.sbatch
-    submit STAGE2B "afterok:$S1" stage2b.sbatch
+    A=$(need_id A)
+    echo -e "${YELLOW}==> Phase 2: B1, B2 (after A=$A)${NC}"
+    submit B1 "afterok:$A" "$(script_for B1)"
+    submit B2 "afterok:$A" "$(script_for B2)"
+    echo "   When B1/B2 complete: bash $0 3"
     ;;
   3)
-    S2A=$(need_id STAGE2A); S2B=$(need_id STAGE2B)
-    submit STAGE3 "afterok:$S2A:$S2B" stage3.sbatch
+    B1=$(need_id B1); B2=$(need_id B2)
+    echo -e "${YELLOW}==> Phase 3: C (after B1=$B1, B2=$B2)${NC}"
+    submit C "afterok:$B1:$B2" "$(script_for C)"
+    ;;
+  one)
+    name=${2:-}
+    script=$(script_for "$name") || { echo -e "${RED}usage: $0 one <A|B1|B2|C>${NC}"; exit 1; }
+    echo -e "${YELLOW}==> Re-running $name with no dependencies${NC}"
+    submit "$name" "" "$script"
     ;;
   status) show_status ;;
   clean)  clean_state ;;
   *)
     cat <<USAGE
-Usage: bash submit_phased.sh <1|2|3|status|clean>
-Edit the phase cases above to match your own job DAG.
+Usage: bash submit_phased.sh <1|2|3|one <JOB>|status|clean>
+
+  1        submit phase 1
+  2        submit phase 2 (after phase 1 finishes)
+  3        submit phase 3
+  one <J>  re-run a single job with no dependencies
+  status   saved job IDs + squeue
+  clean    scancel saved jobs and clear state
+
+State file: $STATE
 USAGE
     exit 1
     ;;

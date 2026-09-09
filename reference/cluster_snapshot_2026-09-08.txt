@@ -1,0 +1,313 @@
+########## SNAPSHOT 2026-09-09T02:28:24Z ##########
+host: explorer-02   user: <username>
+Rocky Linux release 9.7 (Blue Onyx)
+slurm 23.11.6
+
+########## PARTITIONS: availability, time limit, GPUs, memory, cores ##########
+PARTITION            AVAIL TIMELIMIT    NODES      GRES            MEMORY     CPUS(A/I/O/T)
+gpu                  up    8:00:00      4          gpu:v100-pcie:2 480000     0/128/0/128
+gpu                  up    8:00:00      1          gpu:t4:4(S:0-1) 187000     0/28/0/28
+gpu                  up    8:00:00      11         gpu:v100-sxm2:4 186000+    195/113/0/308
+gpu                  up    8:00:00      1          gpu:v100-sxm2:3 191000     13/15/0/28
+gpu                  up    8:00:00      1          gpu:v100-sxm2:3 191000     20/8/0/28
+gpu                  up    8:00:00      1          gpu:a100:3      512000     24/40/0/64
+gpu                  up    8:00:00      2          gpu:a100:4      510000+    80/48/0/128
+gpu                  up    8:00:00      4          gpu:h200:8      512000     208/304/0/512
+short*               up    2-00:00:00   251        (null)          62000+     3963/461/4592/9016
+short*               up    2-00:00:00   1          gpu:v100-sxm2:4 186000     24/4/0/28
+courses-gpu          up    1-00:00:00   2          gpu:p100:3(S:0- 512000     0/56/0/56
+courses-gpu          up    1-00:00:00   6          gpu:p100:4(S:0- 512000     0/140/28/168
+courses-gpu          up    1-00:00:00   4          (null)          515000     0/112/0/112
+courses-gpu          up    1-00:00:00   2          gpu:v100-sxm2:4 187000+    20/36/0/56
+courses              up    1-00:00:00   21         (null)          62000+     178/714/132/1024
+sharing              up    1:00:00      398        (null)          62000+     6090/4026/5888/16004
+sharing              up    1:00:00      5          gpu:a100:8      987842+    76/20/1024/1120
+sharing              up    1:00:00      1          gpu:a100:7      1024000    0/0/256/256
+sharing              up    1:00:00      2          gpu:h200:8      1150000+   104/88/128/320
+sharing              up    1:00:00      3          gpu:v100-sxm2:4 186000+    30/54/0/84
+sharing              up    1:00:00      2          gpu:quadro:3    515000     1/31/32/64
+sharing              up    1:00:00      2          gpu:a6000:8     512000+    38/314/0/352
+sharing              up    1:00:00      2          gpu:l40:10      512000     9/63/0/72
+sharing              up    1:00:00      1          gpu:a100:3      1003520    72/24/0/96
+sharing              up    1:00:00      4          gpu:l40s:8      772000+    664/360/0/1024
+sharing              up    1:00:00      1          gpu:l40s:3      514000     6/90/0/96
+sharing              up    1:00:00      1          gpu:a6000:2     515000     32/96/0/128
+sharing              up    1:00:00      2          gpu:rtx6000:8   3090000    82/302/0/384
+sharing              up    1:00:00      1          gpu:rtx6000:6   514000     2/382/0/384
+sharing              up    1:00:00      2          gpu:p100:3(S:0- 512000     0/56/0/56
+sharing              up    1:00:00      6          gpu:p100:4(S:0- 512000     0/140/28/168
+sharing              up    1:00:00      8          gpu:v100:4      382000+    0/384/0/384
+sharing              up    1:00:00      2          gpu:mi50:8      512000     0/32/32/64
+sharing              up    1:00:00      5          gpu:a5000:8     512000     48/400/0/448
+sharing              up    1:00:00      1          gpu:h100:4      512000     0/96/0/96
+sharing              up    1:00:00      4          gpu:l40s:4      514000+    98/318/0/416
+sharing              up    1:00:00      1          gpu:a30:6       256000     0/48/0/48
+gpu-short            up    2:00:00      4          gpu:v100-pcie:2 480000     0/128/0/128
+gpu-short            up    2:00:00      1          gpu:t4:4(S:0-1) 187000     0/28/0/28
+gpu-short            up    2:00:00      11         gpu:v100-sxm2:4 186000+    195/113/0/308
+gpu-short            up    2:00:00      1          gpu:v100-sxm2:3 191000     13/15/0/28
+gpu-short            up    2:00:00      1          gpu:v100-sxm2:3 191000     20/8/0/28
+gpu-short            up    2:00:00      1          gpu:a100:3      512000     24/40/0/64
+gpu-short            up    2:00:00      2          gpu:a100:4      510000+    80/48/0/128
+gpu-short            up    2:00:00      4          gpu:h200:8      512000     208/304/0/512
+gpu-interactive      up    2:00:00      4          gpu:v100-pcie:2 480000     0/128/0/128
+gpu-interactive      up    2:00:00      1          gpu:t4:4(S:0-1) 187000     0/28/0/28
+gpu-interactive      up    2:00:00      11         gpu:v100-sxm2:4 186000+    195/113/0/308
+gpu-interactive      up    2:00:00      1          gpu:v100-sxm2:3 191000     13/15/0/28
+gpu-interactive      up    2:00:00      1          gpu:v100-sxm2:3 191000     20/8/0/28
+gpu-interactive      up    2:00:00      1          gpu:a100:3      512000     24/40/0/64
+gpu-interactive      up    2:00:00      2          gpu:a100:4      510000+    80/48/0/128
+gpu-interactive      up    2:00:00      4          gpu:h200:8      512000     208/304/0/512
+
+########## PARTITION CONFIG (defaults, max time, node caps) ##########
+PartitionName=gpu
+   AllocNodes=ALL Default=NO QoS=gpu
+   DefaultTime=04:00:00 DisableRootJobs=NO ExclusiveUser=NO GraceTime=0 Hidden=NO
+   MaxNodes=UNLIMITED MaxTime=08:00:00 MinNodes=0 LLN=NO MaxCPUsPerNode=UNLIMITED MaxCPUsPerSocket=UNLIMITED
+   State=UP TotalCPUs=1224 TotalNodes=25 SelectTypeParameters=NONE
+PartitionName=short
+   AllocNodes=ALL Default=YES QoS=short
+   DefaultTime=04:00:00 DisableRootJobs=NO ExclusiveUser=NO GraceTime=0 Hidden=NO
+   MaxNodes=2 MaxTime=2-00:00:00 MinNodes=0 LLN=NO MaxCPUsPerNode=UNLIMITED MaxCPUsPerSocket=UNLIMITED
+   State=UP TotalCPUs=9044 TotalNodes=252 SelectTypeParameters=NONE
+PartitionName=courses-gpu
+   AllocNodes=ALL Default=NO QoS=courses-gpu
+   DefaultTime=04:00:00 DisableRootJobs=NO ExclusiveUser=NO GraceTime=0 Hidden=NO
+   MaxNodes=UNLIMITED MaxTime=1-00:00:00 MinNodes=0 LLN=NO MaxCPUsPerNode=UNLIMITED MaxCPUsPerSocket=UNLIMITED
+   State=UP TotalCPUs=392 TotalNodes=14 SelectTypeParameters=NONE
+PartitionName=courses
+   AllocNodes=ALL Default=NO QoS=N/A
+   DefaultTime=04:00:00 DisableRootJobs=NO ExclusiveUser=NO GraceTime=0 Hidden=NO
+   MaxNodes=UNLIMITED MaxTime=1-00:00:00 MinNodes=0 LLN=NO MaxCPUsPerNode=UNLIMITED MaxCPUsPerSocket=UNLIMITED
+   State=UP TotalCPUs=1024 TotalNodes=21 SelectTypeParameters=NONE
+PartitionName=sharing
+   AllocNodes=ALL Default=NO QoS=sharing
+   DefaultTime=NONE DisableRootJobs=NO ExclusiveUser=NO GraceTime=0 Hidden=NO
+   MaxNodes=2 MaxTime=01:00:00 MinNodes=0 LLN=NO MaxCPUsPerNode=UNLIMITED MaxCPUsPerSocket=UNLIMITED
+   State=UP TotalCPUs=22064 TotalNodes=454 SelectTypeParameters=NONE
+PartitionName=gpu-short
+   AllocNodes=ALL Default=NO QoS=gpu-short
+   DefaultTime=01:00:00 DisableRootJobs=NO ExclusiveUser=NO GraceTime=0 Hidden=NO
+   MaxNodes=UNLIMITED MaxTime=02:00:00 MinNodes=0 LLN=NO MaxCPUsPerNode=UNLIMITED MaxCPUsPerSocket=UNLIMITED
+   State=UP TotalCPUs=1224 TotalNodes=25 SelectTypeParameters=NONE
+PartitionName=gpu-interactive
+   AllocNodes=ALL Default=NO QoS=gpu-interactive
+   DefaultTime=01:00:00 DisableRootJobs=NO ExclusiveUser=NO GraceTime=0 Hidden=NO
+   MaxNodes=UNLIMITED MaxTime=02:00:00 MinNodes=0 LLN=NO MaxCPUsPerNode=UNLIMITED MaxCPUsPerSocket=UNLIMITED
+   State=UP TotalCPUs=1224 TotalNodes=25 SelectTypeParameters=NONE
+
+########## QOS LIMITS (the caps that actually reject your sbatch) ##########
+MaxJobsPU = max running per user | MaxSubmitPU = max queued+running per user
+MaxTRESPU = max resources across your jobs | MaxTRES = max per single job
+Name|MaxWall|MaxJobsPU|MaxSubmitPU|MaxTRESPU|MaxTRES|Priority
+normal||||||0
+gpu||4|8|gres/gpu=4|gres/gpu=1|1000
+multigpu||4|8|gres/gpu=8||1500
+netsi||5000||||0
+test||3||||0
+debug||10||cpu=128,mem=512G||2000
+express||50||cpu=2048,mem=25T||1500
+short||50||cpu=1024,mem=25T||1000
+long||25||cpu=1024,mem=25T||500
+large||100|1000|||1250
+lopez||||||0
+green||10|25|||0
+lowpriority||50||cpu=1024,gres/gpu=8,mem=25T||0
+ood||5||||0
+courses-gpu||2||gres/gpu=2|gres/gpu=1|0
+sharing|01:00:00|2|4|gres/gpu=2|gres/gpu=1|0
+gpu-short||2|8|gres/gpu=2|gres/gpu=2|2000
+gpu-interactive|02:00:00|2|4||gres/gpu=1|2000
+pi||||||5000
+
+########## MY ACCOUNTS AND ASSOCIATIONS ##########
+(omitted: run the script yourself to see your own accounts, QOS and unix groups)
+
+########## GPU TYPES PRESENT ON THE CLUSTER ##########
+
+gpu:a100:3
+gpu:a100:4
+gpu:a100:7
+gpu:a100:8
+gpu:a30:6
+gpu:a5000:8
+gpu:a6000:2
+gpu:a6000:8
+gpu:h100:4
+gpu:h200:8
+gpu:l40:10
+gpu:l40s:3
+gpu:l40s:4
+gpu:l40s:8
+gpu:mi50:8
+gpu:p100:3
+gpu:p100:4
+gpu:quadro:3
+gpu:rtx6000:6
+gpu:rtx6000:8
+gpu:t4:4
+gpu:v100:4
+gpu:v100-pcie:2
+gpu:v100-sxm2:3
+gpu:v100-sxm2:4
+
+########## GPU NODES BY PARTITION ##########
+d1026                gpu              64     512000     ib,zen2,prod                 gpu:a100:3              
+d1026                gpu-interactive  64     512000     ib,zen2,prod                 gpu:a100:3              
+d1026                gpu-short        64     512000     ib,zen2,prod                 gpu:a100:3              
+d3233                sharing          96     1003520    cascadelake,prod             gpu:a100:3              
+d1028                gpu              64     512000     zen2,prod,ib,a100@80g        gpu:a100:4              
+d1028                gpu-interactive  64     512000     zen2,prod,ib,a100@80g        gpu:a100:4              
+d1028                gpu-short        64     512000     zen2,prod,ib,a100@80g        gpu:a100:4              
+d1029                gpu              64     510000     zen2,prod,ib,a100@80g        gpu:a100:4              
+d1029                gpu-interactive  64     510000     zen2,prod,ib,a100@80g        gpu:a100:4              
+d1029                gpu-short        64     510000     zen2,prod,ib,a100@80g        gpu:a100:4              
+d3149                sharing          256    1024000    zen2,prod,dgx                gpu:a100:7              
+d3203                sharing          256    987842     prod,ib                      gpu:a100:8              
+d3146                sharing          256    1024000    zen2,prod,dgx                gpu:a100:8              
+d3147                sharing          256    1024000    zen2,prod,dgx                gpu:a100:8              
+d3150                sharing          256    1024000    zen2,prod,dgx                gpu:a100:8              
+d3204                sharing          96     1000000    cascadelake,prod,ib          gpu:a100:8              
+d4100                sharing          48     256000     ib,cascadelake,prod,a30      gpu:a30:6               
+d3165                sharing          96     512000     zen2,prod                    gpu:a5000:8             
+d3166                sharing          96     512000     zen2,prod                    gpu:a5000:8             
+d3170                sharing          96     512000     zen2,prod                    gpu:a5000:8             
+d3171                sharing          96     512000     zen2,prod                    gpu:a5000:8             
+d3168                sharing          96     512000     zen2,prod                    gpu:a6000:8             
+d4041                sharing          96     512000     ib,cascadelake,prod          gpu:h100:4              
+d4052                gpu              128    512000     cascadelake,prod             gpu:h200:8              
+d4052                gpu-interactive  128    512000     cascadelake,prod             gpu:h200:8              
+d4052                gpu-short        128    512000     cascadelake,prod             gpu:h200:8              
+d4053                gpu              128    512000     cascadelake,prod             gpu:h200:8              
+d4053                gpu-interactive  128    512000     cascadelake,prod             gpu:h200:8              
+d4053                gpu-short        128    512000     cascadelake,prod             gpu:h200:8              
+d4054                gpu              128    512000     cascadelake,prod             gpu:h200:8              
+d4054                gpu-interactive  128    512000     cascadelake,prod             gpu:h200:8              
+d4054                gpu-short        128    512000     cascadelake,prod             gpu:h200:8              
+d4055                gpu              128    512000     cascadelake,prod             gpu:h200:8              
+d4055                gpu-interactive  128    512000     cascadelake,prod             gpu:h200:8              
+d4055                gpu-short        128    512000     cascadelake,prod             gpu:h200:8              
+d3230                sharing          36     512000     cascadelake,prod,ib          gpu:l40:10              
+d3231                sharing          36     512000     cascadelake,prod,ib          gpu:l40:10              
+d4049                sharing          96     514000     prod                         gpu:l40s:3              
+d4046                sharing          96     1000000    prod                         gpu:l40s:4              
+d4047                sharing          128    514000     prod                         gpu:l40s:4              
+d4050                sharing          96     514000     prod                         gpu:l40s:4              
+d4051                sharing          96     514000     prod                         gpu:l40s:4              
+d4042                sharing          256    773000     ib,zen2,prod                 gpu:l40s:8              
+d4043                sharing          256    773000     ib,xen2,prod                 gpu:l40s:8              
+d4044                sharing          256    773000     ib,zen2,prod                 gpu:l40s:8              
+d3163                sharing          32     512000     zen2,prod,rocm               gpu:mi50:8              
+d3164                sharing          32     512000     zen2,prod,rocm               gpu:mi50:8              
+c2184                courses-gpu      28     512000     broadwell,prod               gpu:p100:3(S:0-1)       
+c2184                sharing          28     512000     broadwell,prod               gpu:p100:3(S:0-1)       
+c2188                courses-gpu      28     512000     broadwell,prod               gpu:p100:3(S:0-1)       
+c2188                sharing          28     512000     broadwell,prod               gpu:p100:3(S:0-1)       
+c2185                courses-gpu      28     512000     broadwell,prod               gpu:p100:4(S:0-1)       
+c2185                sharing          28     512000     broadwell,prod               gpu:p100:4(S:0-1)       
+c2186                courses-gpu      28     512000     broadwell,prod               gpu:p100:4(S:0-1)       
+c2186                sharing          28     512000     broadwell,prod               gpu:p100:4(S:0-1)       
+c2187                courses-gpu      28     512000     broadwell,prod               gpu:p100:4(S:0-1)       
+c2187                sharing          28     512000     broadwell,prod               gpu:p100:4(S:0-1)       
+c2193                courses-gpu      28     512000     broadwell,prod               gpu:p100:4(S:0-1)       
+c2193                sharing          28     512000     broadwell,prod               gpu:p100:4(S:0-1)       
+c2194                courses-gpu      28     512000     broadwell,prod               gpu:p100:4(S:0-1)       
+c2194                sharing          28     512000     broadwell,prod               gpu:p100:4(S:0-1)       
+c2195                courses-gpu      28     512000     broadwell,prod               gpu:p100:4(S:0-1)       
+c2195                sharing          28     512000     broadwell,prod               gpu:p100:4(S:0-1)       
+d3090                sharing          32     515000     ib,cascadelake,prod          gpu:quadro:3            
+d4074                sharing          192    3090000    zen2,prod                    gpu:rtx6000:8           
+d4075                sharing          192    3090000    zen2,prod                    gpu:rtx6000:8           
+d1025                gpu              28     187000     ib,cascadelake,prod          gpu:t4:4(S:0-1)         
+d1025                gpu-interactive  28     187000     ib,cascadelake,prod          gpu:t4:4(S:0-1)         
+d1025                gpu-short        28     187000     ib,cascadelake,prod          gpu:t4:4(S:0-1)         
+d3091                sharing          48     382000     ib,cascadelake,prod          gpu:v100:4              
+d3093                sharing          48     382000     ib,cascadelake,prod          gpu:v100:4              
+d3094                sharing          48     382000     ib,cascadelake,prod          gpu:v100:4              
+d3095                sharing          48     382000     ib,cascadelake,prod          gpu:v100:4              
+d3096                sharing          48     382000     ib,cascadelake,prod          gpu:v100:4              
+d3097                sharing          48     382000     ib,cascadelake,prod          gpu:v100:4              
+d3098                sharing          48     382000     ib,cascadelake,prod          gpu:v100:4              
+d3092                sharing          48     385038     ib,cascadelake,prod8         gpu:v100:4              
+c2204                gpu              32     480000     zen,prod                     gpu:v100-pcie:2(S:0-1)  
+c2204                gpu-interactive  32     480000     zen,prod                     gpu:v100-pcie:2(S:0-1)  
+c2204                gpu-short        32     480000     zen,prod                     gpu:v100-pcie:2(S:0-1)  
+c2205                gpu              32     480000     zen,prod                     gpu:v100-pcie:2(S:0-1)  
+c2205                gpu-interactive  32     480000     zen,prod                     gpu:v100-pcie:2(S:0-1)  
+c2205                gpu-short        32     480000     zen,prod                     gpu:v100-pcie:2(S:0-1)  
+c2206                gpu              32     480000     zen,prod                     gpu:v100-pcie:2(S:0-1)  
+c2206                gpu-interactive  32     480000     zen,prod                     gpu:v100-pcie:2(S:0-1)  
+c2206                gpu-short        32     480000     zen,prod                     gpu:v100-pcie:2(S:0-1)  
+c2207                gpu              32     480000     zen,prod                     gpu:v100-pcie:2(S:0-1)  
+c2207                gpu-interactive  32     480000     zen,prod                     gpu:v100-pcie:2(S:0-1)  
+c2207                gpu-short        32     480000     zen,prod                     gpu:v100-pcie:2(S:0-1)  
+c4035                sharing          28     578000     skylake_avx512,prod          gpu:v100-sxm2:4(S:0-1)  
+d1004                courses-gpu      28     187000     ib,skylake_avx512,prod       gpu:v100-sxm2:4(S:0-1)  
+d1004                sharing          28     187000     ib,skylake_avx512,prod       gpu:v100-sxm2:4(S:0-1)  
+d1020                gpu              28     187000     ib,skylake_avx512,prod       gpu:v100-sxm2:4(S:0-1)  
+d1020                gpu-interactive  28     187000     ib,skylake_avx512,prod       gpu:v100-sxm2:4(S:0-1)  
+d1020                gpu-short        28     187000     ib,skylake_avx512,prod       gpu:v100-sxm2:4(S:0-1)  
+d1027                gpu              28     186000     ib,skylake_avx512,prod       gpu:v100-sxm2:4(S:0-1)  
+d1027                gpu-interactive  28     186000     ib,skylake_avx512,prod       gpu:v100-sxm2:4(S:0-1)  
+d1027                gpu-short        28     186000     ib,skylake_avx512,prod       gpu:v100-sxm2:4(S:0-1)  
+d1027                sharing          28     186000     ib,skylake_avx512,prod       gpu:v100-sxm2:4(S:0-1)  
+d1027                short*           28     186000     ib,skylake_avx512,prod       gpu:v100-sxm2:4(S:0-1)  
+NODELIST             PARTITION        CPUS   MEMORY     AVAIL_FEATURES               GRES                    
+
+########## IDLE GPU NODES RIGHT NOW ##########
+--- gpu ---
+NODELIST            GRES                    STATE     
+c[2204-2207]        gpu:v100-pcie:2(S:0-1)  plnd      
+d1025               gpu:t4:4(S:0-1)         plnd      
+--- gpu-short ---
+NODELIST            GRES                    STATE     
+c[2204-2207]        gpu:v100-pcie:2(S:0-1)  plnd      
+d1025               gpu:t4:4(S:0-1)         plnd      
+--- gpu-interactive ---
+NODELIST            GRES                    STATE     
+c[2204-2207]        gpu:v100-pcie:2(S:0-1)  plnd      
+d1025               gpu:t4:4(S:0-1)         plnd      
+
+########## SCHEDULER LIMITS ##########
+GresTypes               = gpu
+MaxArraySize            = 1001
+MaxJobCount             = 100000
+PriorityType            = priority/multifactor
+SchedulerType           = sched/backfill
+SelectType              = select/cons_tres
+SelectTypeParameters    = CR_CORE_MEMORY
+
+########## STORAGE ##########
+Filesystem                                   Size  Used Avail Use% Mounted on
+vast1-mghpcc-eth.neu.edu:/discovery/home     255T  146T  110T  57% /home
+vast1-mghpcc-eth.neu.edu:/discovery/scratch  1.5P  1.2P  384T  76% /scratch
+(run check-quota /home/$USER from a compute node for real quota numbers:
+  srun -p short --constraint=ib --pty bash )
+
+########## KEY MODULES ##########
+----------------------- /shared/EL9/explorer/modulefiles -----------------------
+anaconda3/2024.06  
+----------------------- /shared/EL9/explorer/modulefiles -----------------------
+miniconda3/24.11.1  miniconda3/25.9.1  
+----------------------- /shared/EL9/explorer/modulefiles -----------------------
+python/3.13.5  
+----------------------- /shared/EL9/explorer/modulefiles -----------------------
+cuda/12.1.1  cuda/12.3.0  cuda/12.3.0.old  cuda/12.8.0  cuda/13.2.0  
+----------------------- /shared/EL9/explorer/modulefiles -----------------------
+cuDNN/9.10.2  
+
+########## RC HELPER COMMANDS (provided by the explorer module) ##########
+  present: check-quota -> /shared/EL9/explorer/explorer/bin/check-quota
+  present: historical-seff -> /shared/EL9/explorer/explorer/bin/historical-seff
+  present: gpu-logs -> /shared/EL9/explorer/explorer/bin/gpu-logs
+  present: project -> /shared/EL9/explorer/explorer/bin/project
+  present: nodestat -> /shared/EL9/explorer/explorer/bin/nodestat
+  present: seff -> /usr/bin/seff
+  present: sacct -> /usr/bin/sacct
+  present: sinfo -> /usr/bin/sinfo
+  present: apptainer -> /usr/bin/apptainer
+
+########## MY CURRENT JOBS ##########
+(omitted)
+
+########## END SNAPSHOT ##########
