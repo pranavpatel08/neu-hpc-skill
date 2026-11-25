@@ -22,6 +22,7 @@ if [[ "$USERNAME" == CHANGEME* || "$PROJECT" == CHANGEME* ]]; then
   echo "Edit USERNAME and PROJECT at the top of $0 first." >&2; exit 1
 fi
 
+# Needs the RC-issued key via ~/.ssh/config (SKILL.md §1); passwords and self-made keys stopped working 2026-11-06.
 XFER=${USERNAME}@xfer.discovery.neu.edu
 REMOTE_CODE=/scratch/${USERNAME}/${PROJECT}/code
 REMOTE_RESULTS=/scratch/${USERNAME}/${PROJECT}/results

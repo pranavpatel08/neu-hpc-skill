@@ -29,7 +29,7 @@ Uninstall: `rm -rf ~/.claude/skills/neu-hpc`
 
 ## What it covers
 
-Connecting and passwordless SSH - storage layout and the 75 GB `/home` quota - the module
+Connecting with the RC-issued SSH key (required since 2026-11-06) - storage layout and the 75 GB `/home` quota - the module
 system - conda and venv environments, GPU-enabled PyTorch, and what the `cuda` modules do
 and do not affect - partitions, QOS limits and which one to pick - `srun` and `sbatch` -
 GPU jobs, GPU type selection, VRAM sizes and `--constraint` - job arrays - job

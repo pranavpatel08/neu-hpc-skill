@@ -16,24 +16,36 @@ Everything needed to go from zero to a running GPU job on **Explorer**, Northeas
 
 ## 1. Connect
 
-```bash
-ssh <username>@login.explorer.northeastern.edu        # <username> = first part of your NU email
-ssh -Y <username>@login.explorer.northeastern.edu     # add -Y for X11 (MATLAB, Maestro GUIs)
-```
+:rotating_light: **Since 2026-11-06, SSH accepts only the key Research Computing generated for you.** NU passwords and self-generated keys (`ssh-keygen` + `ssh-copy-id`) fail with `Permission denied (publickey)`, even when the key is in `~/.ssh/authorized_keys`. Open OnDemand login is unchanged. Source: [SSH Instructions for Explorer](https://rc.northeastern.edu/2026/10/23/ssh-instructions-for-explorer/). *(Verified live 2026-11-24.)*
 
-Your password is your normal Northeastern password. You land on a login node (`explorer-01`/`explorer-02`).
+**One-time setup:**
 
-**Set up passwordless SSH** (required for GUI apps to launch cleanly, and for any scripted or agent-driven workflow):
+1. In [Open OnDemand](https://ood.explorer.northeastern.edu): **Files → Home Directory → Show dot files → `.ssh`**. Tick `<username>-<timestamp>` (private key) and `<username>-<timestamp>.pub`, then **Download**. If they are not there, email rchelp@northeastern.edu.
+2. On your laptop (`<username>` = first part of your NU email):
 
 ```bash
-# On your laptop:
-ssh-keygen -t rsa                 # press Enter at every prompt, no passphrase
-ssh-copy-id -i ~/.ssh/id_rsa.pub <username>@login.explorer.northeastern.edu
-
-# Then ON the cluster (separate step, needed for X11/GUI apps between cluster nodes):
-ssh-keygen -t rsa
-cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
+mv ~/Downloads/<username>-<timestamp>* ~/.ssh/
+chmod 600 ~/.ssh/<username>-<timestamp>
+chmod 644 ~/.ssh/<username>-<timestamp>.pub
 ```
+
+3. Add to `~/.ssh/config`, so that `ssh`, `scp`, `rsync` and scripts pick up the key without `-i`:
+
+```
+Host explorer
+    HostName login.explorer.northeastern.edu
+Host explorer login.explorer.northeastern.edu xfer.discovery.neu.edu
+    User <username>
+    IdentityFile ~/.ssh/<username>-<timestamp>
+    IdentitiesOnly yes
+```
+
+```bash
+ssh explorer          # same as: ssh -i ~/.ssh/<username>-<timestamp> <username>@login.explorer.northeastern.edu
+ssh -Y explorer       # add -Y for X11 (MATLAB, Maestro GUIs)
+```
+
+You land on a login node (`explorer-01`/`explorer-02`). **Do not delete anything in the cluster's `~/.ssh`**: the RC key pair lives there. The old in-cluster `ssh-keygen` step (for X11 between cluster nodes) has not been re-verified since the change; if GUI apps fail, ask RC.
 
 **Open OnDemand** (browser GUI: JupyterLab, RStudio, VSCode, MATLAB, Gaussian, Maestro, Unix Desktop): <https://ood.explorer.northeastern.edu>
 
@@ -624,7 +636,8 @@ Remind students to `scancel` interactive sessions when they finish. With only 2 
 | `torch.cuda.is_available()` is False | Almost never the cuda module. Login node, missing `--gres`, or a CPU-only wheel | Confirm `nvidia-smi` works, that you passed `--gres`, and that `pip list \| grep torch` shows a `+cu` build |
 | Job reports COMPLETED but produced nothing | No `set -e`; script failed but exited 0 | Add `set -euo pipefail` |
 | Output file missing entirely | `--output` directory does not exist | `mkdir -p logs` before submitting |
-| `Error: unable to open display` | Passwordless SSH not set up on the cluster itself | Regenerate keys, append to `~/.ssh/authorized_keys` on the cluster |
+| `Permission denied (publickey)` on `ssh` | Using a password or a self-made key; since 2026-11-06 only the RC-generated key works | Download the RC key pair from OOD and add the config entry ([§1](#1-connect)) |
+| `Error: unable to open display` | X11 forwarding not set up (the pre-Nov-2026 fix, an in-cluster key in `~/.ssh/authorized_keys`, is unverified since the key change) | Use `ssh -Y explorer`; if it still fails, use an OOD Desktop session or ask RC |
 | OOD 504 error | Cached session | Open OOD in an incognito window, or clear cookies |
 | OOD app will not launch | Web server wedged | "Restart Web Server" under the `?`/Develop menu in OOD |
 | Job pending forever | Scarce GPU type, too many nodes, or too much time requested | Drop the type constraint, request less, check `sinfo -p <part> -t idle` |
